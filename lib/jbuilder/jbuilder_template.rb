@@ -43,6 +43,25 @@ class JbuilderTemplate < Jbuilder
     end
   end
 
+  def cache_anchor!(keys=[], &block)
+    keys = keys.dup
+    if keys.empty?
+      _scope(@attributes) { yield @attributes }
+    else
+      return if _blank?
+      key = keys.shift
+      result = if ::Array === @attributes[key]
+        @attributes[key].map do |element|
+          _scope(element) { cache_anchor!(keys, &block) }
+        end
+      elsif ::Hash === @attributes[key]
+        _scope(@attributes[key]) { cache_anchor!(keys, &block) }
+      end
+      @attributes[key] = result
+      @attributes
+    end
+  end
+
   # Caches the json structure at the root using a string rather than the hash structure. This is considerably
   # faster, but the drawback is that it only works, as the name hints, at the root. So you cannot
   # use this approach to cache deeper inside the hierarchy, like in partials or such. Continue to use #cache! there.

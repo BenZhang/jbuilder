@@ -300,9 +300,9 @@ class Jbuilder
     end - [BLANK]
   end
 
-  def _scope
+  def _scope(_attributes=BLANK)
     parent_attributes, parent_formatter = @attributes, @key_formatter
-    @attributes = BLANK
+    @attributes = _attributes
     yield
     @attributes
   ensure

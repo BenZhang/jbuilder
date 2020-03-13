@@ -216,6 +216,90 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
     assert_equal %w[ a b c ], render('json.cache! "cache-key" do; end')
   end
 
+  test "add cache anchor for array" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.posts @posts, partial: "post", as: :post
+      end
+      json.cache_anchor! ["posts"] do |author|
+        json.title "test"
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal "test", result["posts"][0]["title"]
+  end
+
+  test "add cache anchor for nested hash" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.posts @posts, partial: "post", as: :post
+      end
+      json.cache_anchor! ["posts", "author"] do |author|
+        json.middle_name author["first_name"]
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal "David", result["posts"][2]["author"]["middle_name"]
+    assert_equal "Pavel", result["posts"][5]["author"]["middle_name"]
+  end
+
+  test "add cache anchor for nested array" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.authors ["David Heinemeier Hansson", "Pavel Pravosud"] do |author|
+          json.name author
+          json.posts @posts, partial: "post", as: :post
+        end
+      end
+      json.cache_anchor! ["authors", "posts"] do |_post|
+        json.title "test"
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal "test", result["authors"][0]["posts"][2]["title"]
+  end
+
+  test "do nothing if anchor target is nor hash neither array" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.posts @posts, partial: "post", as: :post
+      end
+      json.cache_anchor! ["posts", "body"] do |_body|
+        json.title "test"
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal nil, result["posts"][0]["title"]
+    assert_equal nil, result["posts"][0]["body"]
+  end
+
+  test "do nothing if anchor target is missing" do
+    discussions = [
+      {
+        title: "Discussion 1",
+        posts: POSTS 
+      },
+      {
+        title: "Discussion 2",
+        posts: [] 
+      }
+    ]
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.discussions @discussions do |discussion|
+          json.name discussion[:name]
+          json.posts discussion[:posts], partial: "post", as: :post
+        end
+      end
+      json.cache_anchor! ["discussions", "posts", "author"] do |author|
+        json.middle_name "test"
+      end
+    JBUILDER
+    result = render(code, discussions: discussions)
+    assert_equal "test", result["discussions"][0]["posts"][0]["author"]["middle_name"]
+    assert_equal [], result["discussions"][1]["posts"]
+  end
+
   test "array root caching" do
     render <<-JBUILDER
       json.cache_root! "cache-key" do
