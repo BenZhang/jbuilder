@@ -43,7 +43,7 @@ class JbuilderTemplate < Jbuilder
     end
   end
 
-  def cache_anchor!(keys=[], &block)
+  def reopen!(keys=[], &block)
     keys = keys.dup
     if keys.empty?
       _scope(@attributes) { yield @attributes }
@@ -52,10 +52,10 @@ class JbuilderTemplate < Jbuilder
       key = keys.shift
       result = if ::Array === @attributes[key]
         @attributes[key].map do |element|
-          _scope(element) { cache_anchor!(keys, &block) }
+          _scope(element) { reopen!(keys, &block) }
         end
       elsif ::Hash === @attributes[key]
-        _scope(@attributes[key]) { cache_anchor!(keys, &block) }
+        _scope(@attributes[key]) { reopen!(keys, &block) }
       end
       @attributes[key] = result
       @attributes

@@ -221,7 +221,7 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
       end
-      json.cache_anchor! ["posts"] do |author|
+      json.reopen! ["posts"] do |author|
         json.title "test"
       end
     JBUILDER
@@ -234,7 +234,7 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
       end
-      json.cache_anchor! ["posts", "author"] do |author|
+      json.reopen! ["posts", "author"] do |author|
         json.middle_name author["first_name"]
       end
     JBUILDER
@@ -251,7 +251,7 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
           json.posts @posts, partial: "post", as: :post
         end
       end
-      json.cache_anchor! ["authors", "posts"] do |_post|
+      json.reopen! ["authors", "posts"] do |_post|
         json.title "test"
       end
     JBUILDER
@@ -264,7 +264,7 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
       end
-      json.cache_anchor! ["posts", "body"] do |_body|
+      json.reopen! ["posts", "body"] do |_body|
         json.title "test"
       end
     JBUILDER
@@ -291,7 +291,7 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
           json.posts discussion[:posts], partial: "post", as: :post
         end
       end
-      json.cache_anchor! ["discussions", "posts", "author"] do |author|
+      json.reopen! ["discussions", "posts", "author"] do |author|
         json.middle_name "test"
       end
     JBUILDER
