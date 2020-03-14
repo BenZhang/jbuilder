@@ -57,7 +57,7 @@ class JbuilderTemplate < Jbuilder
       elsif ::Hash === @attributes[key]
         _scope(@attributes[key]) { reopen!(keys, &block) }
       end
-      @attributes[key] = result
+      @attributes[key] = result unless result.nil?
       @attributes
     end
   end

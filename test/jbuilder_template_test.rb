@@ -221,12 +221,12 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
       end
-      json.reopen! ["posts"] do |author|
-        json.title "test"
+      json.reopen! ["posts"] do |post|
+        json.title ("title " + post["id"].to_s)
       end
     JBUILDER
     result = render(code, posts: POSTS)
-    assert_equal "test", result["posts"][0]["title"]
+    assert_equal "title 1", result["posts"][0]["title"]
   end
 
   test "add cache anchor for nested hash" do
@@ -234,11 +234,41 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
       end
+      json.reopen! ["posts"] do |post|
+        json.title post["body"]
+      end
       json.reopen! ["posts", "author"] do |author|
         json.middle_name author["first_name"]
       end
     JBUILDER
     result = render(code, posts: POSTS)
+    assert_equal "Post #1", result["posts"][0]["title"]
+    assert_equal 1, result["posts"][0]["id"]
+    assert_equal "Post #1", result["posts"][0]["body"]
+    assert_equal "David", result["posts"][2]["author"]["first_name"]
+    assert_equal "Heinemeier Hansson", result["posts"][2]["author"]["last_name"]
+    assert_equal "David", result["posts"][2]["author"]["middle_name"]
+    assert_equal "Pavel", result["posts"][5]["author"]["middle_name"]
+  end
+
+  test "add cache anchor for nested reopen" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.posts @posts, partial: "post", as: :post
+      end
+      json.reopen! ["posts"] do |post|
+        json.title post["body"]
+        json.reopen! ["author"] do |author|
+          json.middle_name author["first_name"]
+        end
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal "Post #1", result["posts"][0]["title"]
+    assert_equal 1, result["posts"][0]["id"]
+    assert_equal "Post #1", result["posts"][0]["body"]
+    assert_equal "David", result["posts"][2]["author"]["first_name"]
+    assert_equal "Heinemeier Hansson", result["posts"][2]["author"]["last_name"]
     assert_equal "David", result["posts"][2]["author"]["middle_name"]
     assert_equal "Pavel", result["posts"][5]["author"]["middle_name"]
   end
@@ -253,13 +283,15 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
       end
       json.reopen! ["authors", "posts"] do |_post|
         json.title "test"
+        json.body nil
       end
     JBUILDER
     result = render(code, posts: POSTS)
     assert_equal "test", result["authors"][0]["posts"][2]["title"]
+    assert_equal nil, result["authors"][0]["posts"][2]["body"]
   end
 
-  test "do nothing if anchor target is nor hash neither array" do
+  test "raise error if change data type has been overrided" do
     code = <<-JBUILDER
       json.cache! "cache-key" do
         json.posts @posts, partial: "post", as: :post
@@ -270,7 +302,21 @@ class JbuilderTemplateTest < ActiveSupport::TestCase
     JBUILDER
     result = render(code, posts: POSTS)
     assert_equal nil, result["posts"][0]["title"]
-    assert_equal nil, result["posts"][0]["body"]
+    assert_equal "Post #1", result["posts"][0]["body"]
+  end
+
+  test "do nothing if anchor target is not found" do
+    code = <<-JBUILDER
+      json.cache! "cache-key" do
+        json.posts @posts, partial: "post", as: :post
+      end
+      json.reopen! ["posts", "title"] do |_body|
+        json.title "test"
+      end
+    JBUILDER
+    result = render(code, posts: POSTS)
+    assert_equal false, result["posts"][0].key?("title")
+    assert_equal "Post #1", result["posts"][0]["body"]
   end
 
   test "do nothing if anchor target is missing" do
